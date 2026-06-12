@@ -1,0 +1,97 @@
+/* HOW IT WORKS PAGE */
+.how-hero {
+  position: relative; padding: 8rem 0 5rem; text-align: center;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--royal) 100%);
+  overflow: hidden;
+}
+.how-hero__overlay {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(-45deg, transparent, transparent 60px, rgba(255,255,255,0.02) 60px, rgba(255,255,255,0.02) 61px);
+}
+.how-hero__inner { position: relative; z-index: 1; }
+.how-hero__title {
+  font-family: var(--font-serif); font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-weight: 900; color: white; margin-bottom: 1rem;
+}
+.how-hero__sub { color: rgba(255,255,255,0.7); font-size: 1.05rem; max-width: 520px; margin: 0 auto 1.5rem; line-height: 1.8; }
+.how-breadcrumb { display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.82rem; color: rgba(255,255,255,0.4); }
+.how-breadcrumb a { color: var(--gold-light); text-decoration: none; }
+.how-breadcrumb span { color: rgba(255,255,255,0.3); }
+
+/* STEPS */
+.how-steps-section { padding: 6rem 0; background: var(--white); }
+
+.how-steps-list { display: flex; flex-direction: column; gap: 0; }
+
+.how-step-item {
+  display: grid; grid-template-columns: 80px 1fr; gap: 2.5rem; align-items: flex-start;
+  padding-bottom: 3rem;
+}
+
+.how-step-num { display: flex; flex-direction: column; align-items: center; }
+
+.how-step-circle {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--royal), var(--royal-light));
+  color: white; font-family: var(--font-serif); font-size: 1.6rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(26,58,143,0.3); flex-shrink: 0;
+}
+
+.how-step-connector { width: 2px; flex: 1; background: var(--gray-200); margin-top: 0.75rem; min-height: 80px; }
+
+.how-step-card {
+  background: var(--gray-50); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl); padding: 2rem 2.5rem;
+  transition: var(--transition);
+}
+.how-step-card:hover { box-shadow: var(--shadow-md); transform: translateX(4px); }
+
+.how-step-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+.how-step-card h3 {
+  font-size: 1.25rem; font-weight: 700; color: var(--navy); margin-bottom: 0.6rem;
+}
+.how-step-card p { color: var(--gray-500); line-height: 1.8; margin-bottom: 1.25rem; font-size: 0.95rem; }
+
+.how-step-details { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.how-step-details li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--gray-600); }
+.how-step-details svg { color: var(--success); flex-shrink: 0; }
+
+/* FEATURES */
+.how-features-section { padding: 6rem 0; background: var(--gray-50); }
+.how-section-title {
+  font-family: var(--font-serif); font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 900; color: var(--navy);
+}
+.how-features-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+}
+.how-feature-card {
+  background: white; border-radius: var(--radius-lg); padding: 2rem;
+  border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+.how-feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--royal); }
+.how-feature-icon { font-size: 1.75rem; margin-bottom: 0.85rem; }
+.how-feature-card h4 { font-size: 0.95rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+.how-feature-card p { font-size: 0.85rem; color: var(--gray-500); line-height: 1.7; }
+
+/* CTA */
+.how-cta {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--royal) 100%);
+  padding: 5rem 0;
+}
+.how-cta__inner { text-align: center; }
+.how-cta__inner h2 { font-family: var(--font-serif); font-size: clamp(1.7rem, 3vw, 2.4rem); font-weight: 900; color: white; margin-bottom: 0.75rem; }
+.how-cta__inner p { color: rgba(255,255,255,0.7); margin-bottom: 2rem; }
+
+@media (max-width: 768px) {
+  .how-features-grid { grid-template-columns: 1fr 1fr; }
+  .how-step-details { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .how-features-grid { grid-template-columns: 1fr; }
+  .how-step-item { grid-template-columns: 1fr; }
+  .how-step-num { flex-direction: row; }
+  .how-step-connector { display: none; }
+}

@@ -1,0 +1,264 @@
+/* ── INVESTOR MESSAGES ─────────────────────────────────────── */
+/* LOCATION: src/pages/investor/InvestorMessages.css           */
+
+.inv-msg-wrap {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── THREAD BOX ──────────────────────────────────────────────── */
+.inv-msg-thread-box {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+}
+
+/* Header */
+.inv-msg-thread-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.1rem 1.5rem;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--royal) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.inv-msg-thread-header__icon {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.inv-msg-thread-header__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+}
+.inv-msg-thread-header__sub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.55);
+}
+.inv-msg-unread-pill {
+  margin-left: auto;
+  background: var(--gold);
+  color: var(--navy);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+}
+
+/* Messages body */
+.inv-msg-thread-body {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  max-height: 460px;
+  background: var(--gray-50);
+}
+
+/* Loading dots */
+.inv-msg-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 3rem;
+}
+.inv-msg-loading__dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gray-300);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+.inv-msg-loading__dot:nth-child(2) { animation-delay: 0.2s; }
+.inv-msg-loading__dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40%           { transform: scale(1.0); opacity: 1.0; }
+}
+
+/* Empty state */
+.inv-msg-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 3rem;
+  color: var(--gray-300);
+  text-align: center;
+}
+.inv-msg-empty p { font-size: 0.88rem; color: var(--gray-400); }
+
+/* ── CHAT BUBBLES ────────────────────────────────────────────── */
+.inv-msg-bubble {
+  max-width: 78%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* Investor's own messages — right side */
+.bubble-me {
+  align-self: flex-end;
+}
+.bubble-me .inv-msg-bubble__name {
+  text-align: right;
+  color: var(--gray-400);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.bubble-me .inv-msg-bubble__text {
+  background: linear-gradient(135deg, var(--royal), var(--royal-light));
+  color: white;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.bubble-me .inv-msg-bubble__time {
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--gray-400);
+}
+
+/* Admin messages — left side */
+.bubble-admin {
+  align-self: flex-start;
+}
+.bubble-admin .inv-msg-bubble__name {
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.bubble-admin .inv-msg-bubble__text {
+  background: white;
+  border: 1px solid var(--gray-200);
+  color: var(--gray-800);
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  box-shadow: var(--shadow-sm);
+}
+.bubble-admin .inv-msg-bubble__time {
+  font-size: 0.7rem;
+  color: var(--gray-400);
+}
+
+/* Subject tag above bubble */
+.inv-msg-bubble__subject {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gold);
+  background: var(--gold-glow);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  align-self: flex-start;
+  margin-bottom: 0.2rem;
+}
+.bubble-me .inv-msg-bubble__subject {
+  align-self: flex-end;
+}
+
+/* ── QUICK REPLY BAR ─────────────────────────────────────────── */
+.inv-msg-quick-reply {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--gray-100);
+  background: white;
+}
+.inv-msg-quick-reply__input {
+  flex: 1;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  font-family: var(--font-sans);
+  color: var(--gray-800);
+  outline: none;
+  resize: none;
+  transition: var(--transition);
+  line-height: 1.5;
+}
+.inv-msg-quick-reply__input:focus {
+  border-color: var(--royal);
+  box-shadow: 0 0 0 3px rgba(26,58,143,0.08);
+}
+.inv-msg-quick-reply__btn {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── COMPOSE PANEL ───────────────────────────────────────────── */
+.inv-msg-compose {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 80px;
+}
+.inv-msg-compose__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.inv-msg-compose__header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.inv-msg-compose__close {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  transition: var(--transition);
+}
+.inv-msg-compose__close:hover { color: var(--danger); }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .inv-msg-wrap {
+    grid-template-columns: 1fr;
+  }
+  .inv-msg-compose {
+    position: static;
+  }
+}
+@media (max-width: 480px) {
+  .inv-msg-thread-body { max-height: 360px; }
+  .inv-msg-bubble { max-width: 92%; }
+}

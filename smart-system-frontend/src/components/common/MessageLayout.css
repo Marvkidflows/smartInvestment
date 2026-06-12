@@ -1,0 +1,16 @@
+/* MESSAGE LAYOUT */
+.msg-layout {
+  display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start;
+}
+.msg-inbox  { min-height: 400px; }
+.msg-detail { min-height: 400px; }
+.msg-item-selected {
+  background: rgba(26,58,143,0.06) !important;
+  border-color: var(--royal) !important;
+}
+.msg-thread h3  { font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 0.25rem; }
+.msg-thread-date { font-size: 0.78rem; color: var(--gray-400); margin-bottom: 1.5rem; }
+
+@media (max-width: 768px) {
+  .msg-layout { grid-template-columns: 1fr; }
+}
