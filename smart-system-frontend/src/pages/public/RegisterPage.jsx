@@ -60,11 +60,8 @@ export default function RegisterPage() {
     setStageError('');
 
     try {
-      // Always refresh CSRF before any POST
-      await authService.getCsrf();
-
       if (stage === 1) {
-        await authService.registerStage1({
+        const res = await authService.registerStage1({
           full_name:             form.full_name,
           email:                 form.email,
           country_code:          form.country_code || undefined,
@@ -74,6 +71,12 @@ export default function RegisterPage() {
           password_confirmation: form.password_confirmation,
           referral_code:         form.referral_code || undefined,
         });
+
+        // Save token for stages 2-4
+        if (res.data?.token) {
+          localStorage.setItem('auth_token', res.data.token);
+        }
+
         setStage(2);
 
       } else if (stage === 2) {
@@ -123,7 +126,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -152,7 +154,6 @@ export default function RegisterPage() {
 
     submitStage();
   };
-
   return (
     <div className="auth-page">
       {/* ── LEFT ── */}

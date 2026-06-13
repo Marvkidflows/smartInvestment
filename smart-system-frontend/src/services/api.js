@@ -4,23 +4,18 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // ─── AXIOS INSTANCE ───────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: API_BASE,
-  withCredentials: true,
-  withXSRFToken: true,
+  baseURL: `${API_BASE}/api`,
   headers: {
-    'Accept':            'application/json',
-    'Content-Type':      'application/json',
-    'X-Requested-With':  'XMLHttpRequest',
+    'Accept':       'application/json',
+    'Content-Type': 'application/json',
   },
 });
 
-// ─── REQUEST INTERCEPTOR — attach XSRF token ─────────────────────────────────
+// ─── REQUEST INTERCEPTOR — attach Bearer token ───────────────────────────────
 api.interceptors.request.use(config => {
-  const raw = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('XSRF-TOKEN='));
-  if (raw) {
-    config.headers['X-XSRF-TOKEN'] = decodeURIComponent(raw.split('=').slice(1).join('='));
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   return config;
 });
@@ -30,6 +25,7 @@ api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
+      localStorage.removeItem('auth_token');
       const onAuth = ['/login', '/register'].some(p => window.location.pathname.startsWith(p));
       if (!onAuth) window.location.href = '/login';
     }
@@ -41,10 +37,9 @@ export default api;
 
 // ─── AUTH SERVICE ─────────────────────────────────────────────────────────────
 export const authService = {
-  getCsrf:        ()     => api.get('/sanctum/csrf-cookie'),
   login:          (data) => api.post('/login', data),
   logout:         ()     => api.post('/logout'),
-  getUser:        ()     => api.get('/api/user'),
+  getUser:        ()     => api.get('/user'),
   registerStage1: (data) => api.post('/register/stage1', data),
   registerStage2: (data) => api.post('/register/stage2', data),
   registerStage3: (data) => api.post('/register/stage3', data),
@@ -77,16 +72,12 @@ export const investorService = {
   storeWithdrawal: (data) => api.post('/investor-investment/investor/withdrawals', data),
 
   // Messages — investor ↔ admin private thread
-  // GET  → { thread: [{id, body, from, subject, time_ago}], unread_count }
   getMessages: () =>
     api.get('/investor-investment/messages'),
 
-  // POST → { message, data: {id, body, from, created_at, time_ago} }
-  // Body: { subject?: string, body: string }
   storeMessage: (data) =>
     api.post('/investor-investment/messages', data),
 
-  // GET single message (Blade fallback)
   showMessage: (id) =>
     api.get(`/investor-investment/messages/${id}`),
 
@@ -95,7 +86,7 @@ export const investorService = {
   markNotificationRead: (id) => api.post(`/investor-investment/notifications/${id}/read`),
   deleteNotification:   (id) => api.delete(`/investor-investment/notifications/${id}`),
 
-  // Announcements — investor views all active
+  // Announcements
   getAnnouncements: () =>
     api.get('/investor-investment/announcements'),
 
@@ -137,24 +128,16 @@ export const adminService = {
   approveWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/approve`),
   rejectWithdrawal:  (id) => api.post(`/admin/withdrawals/${id}/reject`),
 
-  // Messages — admin sees all investors, sends to specific investor
-  // GET /admin/messages
-  // Returns: { investors: [{investor, last_message, unread_count}], total_unread }
+  // Messages
   getMessages: () =>
     api.get('/admin/messages'),
 
-  // GET /admin/messages/{investor_id}
-  // Returns: { investor: {...}, thread: [{id, body, from, subject, time_ago}] }
   showMessage: (investorId) =>
     api.get(`/admin/messages/${investorId}`),
 
-  // POST /admin/messages/{investor_id}/send
-  // Body: { subject?: string, body: string }
-  // Returns: { message, data: {id, body, from, created_at, time_ago} }
   sendMessageToInvestor: (investorId, data) =>
     api.post(`/admin/messages/${investorId}/send`, data),
 
-  // DELETE /admin/messages/{message_id}
   deleteMessage: (messageId) =>
     api.delete(`/admin/messages/${messageId}`),
 
