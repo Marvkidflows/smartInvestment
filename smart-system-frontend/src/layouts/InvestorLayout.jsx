@@ -3,7 +3,7 @@ import { Outlet, NavLink, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import api from '../services/api';
 import {
-  FiGrid, FiTrendingUp, FiDollarSign, FiArrowUpCircle,
+  FiGrid, FiTrendingUp, FiLayers, FiDollarSign, FiArrowUpCircle,
   FiMessageSquare, FiUser, FiBell, FiGift, FiLogOut,
   FiMenu, FiX, FiChevronRight
 } from 'react-icons/fi';
@@ -11,6 +11,7 @@ import './InvestorLayout.css';
 
 const NAV_ITEMS = [
   { to: '/investor/dashboard',     icon: FiGrid,          label: 'Dashboard'     },
+  { to: '/investor/sectors',       icon: FiLayers,        label: 'Sectors'       },
   { to: '/investor/investments',   icon: FiTrendingUp,    label: 'Investments'   },
   { to: '/investor/deposits',      icon: FiDollarSign,    label: 'Deposits'      },
   { to: '/investor/withdrawals',   icon: FiArrowUpCircle, label: 'Withdrawals'   },

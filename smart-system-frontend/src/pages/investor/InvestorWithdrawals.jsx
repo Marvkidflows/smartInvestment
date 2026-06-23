@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiArrowUpCircle, FiPlus } from 'react-icons/fi';
+import { FiArrowUpCircle, FiPlus, FiLock, FiShield } from 'react-icons/fi';
 import { investorService } from '../../services/api';
 import toast from 'react-hot-toast';
 import './InvestorPages.css';
@@ -7,9 +7,15 @@ import './InvestorPages.css';
 export default function InvestorWithdrawals() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasPin, setHasPin] = useState(null); // null = unknown/loading
+
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ amount: '', method: '', wallet_address: '', bank_name: '', account_number: '', account_name: '' });
+  const [form, setForm] = useState({ amount: '', method: '', wallet_address: '', bank_name: '', account_number: '', account_name: '', withdrawal_pin: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [pinForm, setPinForm] = useState({ current_pin: '', withdrawal_pin: '', withdrawal_pin_confirmation: '' });
+  const [pinSubmitting, setPinSubmitting] = useState(false);
 
   const fetchWithdrawals = () => {
     investorService.getWithdrawals()
@@ -18,7 +24,27 @@ export default function InvestorWithdrawals() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchWithdrawals(); }, []);
+  const fetchPinStatus = () => {
+    investorService.getWithdrawalPinStatus()
+      .then(res => setHasPin(!!res.data?.has_pin))
+      .catch(() => setHasPin(null));
+  };
+
+  useEffect(() => {
+    fetchWithdrawals();
+    fetchPinStatus();
+  }, []);
+
+  const handleRequestClick = () => {
+    if (hasPin === false) {
+      setShowPinForm(true);
+      setShowForm(false);
+      toast('Set up a withdrawal PIN first to request a withdrawal.', { icon: '🔒' });
+      return;
+    }
+    setShowForm(v => !v);
+    setShowPinForm(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,11 +53,39 @@ export default function InvestorWithdrawals() {
       await investorService.storeWithdrawal(form);
       toast.success('Withdrawal request submitted! Pending admin approval.');
       setShowForm(false);
+      setForm(f => ({ ...f, amount: '', withdrawal_pin: '' }));
       fetchWithdrawals();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit withdrawal');
+      const code = err.response?.data?.code;
+      if (code === 'PIN_NOT_SET') {
+        toast.error('You need to set up a withdrawal PIN first.');
+        setShowForm(false);
+        setShowPinForm(true);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to submit withdrawal');
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePinSubmit = async (e) => {
+    e.preventDefault();
+    if (pinForm.withdrawal_pin !== pinForm.withdrawal_pin_confirmation) {
+      toast.error('PINs do not match.');
+      return;
+    }
+    setPinSubmitting(true);
+    try {
+      await investorService.setWithdrawalPin(pinForm);
+      toast.success('Withdrawal PIN saved!');
+      setHasPin(true);
+      setShowPinForm(false);
+      setPinForm({ current_pin: '', withdrawal_pin: '', withdrawal_pin_confirmation: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save PIN');
+    } finally {
+      setPinSubmitting(false);
     }
   };
 
@@ -44,10 +98,53 @@ export default function InvestorWithdrawals() {
           <h1>Withdrawals</h1>
           <p>Request withdrawals and track their processing status</p>
         </div>
-        <button className="btn btn-gold" onClick={() => setShowForm(v => !v)}>
+        <button className="btn btn-gold" onClick={handleRequestClick}>
           <FiPlus /> Request Withdrawal
         </button>
       </div>
+
+      {hasPin === false && !showPinForm && (
+        <div className="inv-announcement" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+          <span>🔒 You haven't set up a withdrawal PIN yet. You'll need one before requesting a withdrawal.</span>
+          <button className="btn btn-sm btn-primary" onClick={() => setShowPinForm(true)}>Set PIN</button>
+        </div>
+      )}
+
+      {showPinForm && (
+        <div className="inv-card dep-form">
+          <h3 className="inv-card__title" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FiShield /> {hasPin ? 'Change Withdrawal PIN' : 'Set Up Withdrawal PIN'}
+          </h3>
+          <form onSubmit={handlePinSubmit}>
+            {hasPin && (
+              <div className="form-group">
+                <label className="form-label">Current PIN</label>
+                <input type="password" inputMode="numeric" maxLength={4} className="form-control" placeholder="••••" required
+                  value={pinForm.current_pin}
+                  onChange={e => setPinForm(f => ({ ...f, current_pin: e.target.value.replace(/\D/g, '') }))} />
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label">New 4-Digit PIN</label>
+              <input type="password" inputMode="numeric" maxLength={4} className="form-control" placeholder="••••" required
+                value={pinForm.withdrawal_pin}
+                onChange={e => setPinForm(f => ({ ...f, withdrawal_pin: e.target.value.replace(/\D/g, '') }))} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirm PIN</label>
+              <input type="password" inputMode="numeric" maxLength={4} className="form-control" placeholder="••••" required
+                value={pinForm.withdrawal_pin_confirmation}
+                onChange={e => setPinForm(f => ({ ...f, withdrawal_pin_confirmation: e.target.value.replace(/\D/g, '') }))} />
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowPinForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={pinSubmitting}>
+                {pinSubmitting ? <span className="spinner" /> : 'Save PIN'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showForm && (
         <div className="inv-card dep-form">
@@ -99,6 +196,15 @@ export default function InvestorWithdrawals() {
               </>
             ) : null}
 
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <FiLock size={13} /> Withdrawal PIN
+              </label>
+              <input type="password" inputMode="numeric" maxLength={4} className="form-control" placeholder="••••" required
+                value={form.withdrawal_pin}
+                onChange={e => setForm(f => ({ ...f, withdrawal_pin: e.target.value.replace(/\D/g, '') }))} />
+            </div>
+
             <div style={{ display:'flex', gap:'0.75rem' }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={submitting}>
@@ -128,7 +234,7 @@ export default function InvestorWithdrawals() {
                 {withdrawals.map(w => (
                   <tr key={w.id}>
                     <td><strong>${parseFloat(w.amount).toLocaleString()}</strong></td>
-                    <td style={{ textTransform:'capitalize' }}>{w.method || w.withdrawal_method || '—'}</td>
+                    <td style={{ textTransform:'capitalize' }}>{w.method || '—'}</td>
                     <td>{w.created_at ? new Date(w.created_at).toLocaleDateString() : '—'}</td>
                     <td>
                       <span className={`badge badge-${w.status==='approved'?'success':w.status==='pending'?'warning':'danger'}`}>

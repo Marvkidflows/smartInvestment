@@ -5,6 +5,7 @@ import { FiTrendingUp, FiDollarSign, FiArrowUpCircle, FiClock, FiActivity, FiPlu
 import { investorService } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import './InvestorDashboard.css';
+import AnnouncementPopup from '../../components/AnnouncementPopup';
 
 function StatCard({ icon: Icon, label, value, sub, color, trend }) {
   return (
@@ -87,17 +88,42 @@ export default function InvestorDashboard() {
         </div>
       </div>
 
-      {/* ANNOUNCEMENTS */}
-      {announcements.length > 0 && (
-        <div className="inv-announcements">
-          {announcements.slice(0, 1).map(a => (
-            <div key={a.id} className="inv-announcement">
-              <span>📢</span>
-              <strong>{a.title}:</strong> {a.message || a.content}
-            </div>
-          ))}
+    {/* POPUP ANNOUNCEMENTS — urgent notices shown as overlay */}
+<AnnouncementPopup />
+
+{/* BANNER ANNOUNCEMENTS — non-popup ones shown inline */}
+{announcements.filter(a => !a.is_popup).length > 0 && (
+  <div className="inv-announcements">
+    {announcements.filter(a => !a.is_popup).slice(0, 3).map(a => {
+      const ANN_META = {
+        general:               { icon: '📢', color: '#3B82F6' },
+        profit_update:         { icon: '📈', color: '#10B981' },
+        investment_opportunity:{ icon: '💡', color: '#F59E0B' },
+        maintenance:           { icon: '🔧', color: '#F59E0B' },
+        balance_adjustment:    { icon: '💰', color: '#10B981' },
+      };
+      const meta = ANN_META[a.type] || ANN_META.general;
+      return (
+        <div key={a.id} className="inv-announcement"
+          style={{ borderLeft: `3px solid ${meta.color}` }}>
+          <span>{meta.icon}</span>
+          <div>
+            <strong>{a.title}:</strong>{' '}
+            <span>{a.message || a.content}</span>
+          </div>
         </div>
-      )}
+      );
+    })}
+    {announcements.filter(a => !a.is_popup).length > 3 && (
+      <Link to="/investor/announcements"
+        className="inv-announcement"
+        style={{ justifyContent:'center', color:'var(--gray-500)', fontSize:'0.82rem' }}>
+        View all announcements →
+      </Link>
+    )}
+  </div>
+)}
+      
 
       {/* STATS GRID */}
       <div className="inv-stats-grid">

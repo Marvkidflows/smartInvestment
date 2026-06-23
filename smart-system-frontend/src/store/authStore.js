@@ -32,7 +32,36 @@ const useAuthStore = create(
       user: null,
       isAuthenticated: false,
       loading: false,
+      hydrated: false,   // ← NEW: true once persist has finished reading localStorage
       error: null,
+
+      // ── CALLED ONCE ON APP BOOT ────────────────────────────────────────────
+      // Validates the stored token against the server. If valid, refreshes the
+      // user object so stale cached data doesn't sit around indefinitely.
+      // If invalid/expired, clears auth state so the user goes to login.
+      initializeAuth: async () => {
+        const token = localStorage.getItem('auth_token');
+
+        if (!token) {
+          set({ hydrated: true, user: null, isAuthenticated: false });
+          return;
+        }
+
+        try {
+          const res = await authService.getUser();
+          const user = extractUser(res.data);
+          if (user) {
+            set({ user: { ...user, role: resolveRole(user) }, isAuthenticated: true, hydrated: true });
+          } else {
+            localStorage.removeItem('auth_token');
+            set({ user: null, isAuthenticated: false, hydrated: true });
+          }
+        } catch {
+          // Token is expired or invalid — clear everything
+          localStorage.removeItem('auth_token');
+          set({ user: null, isAuthenticated: false, hydrated: true });
+        }
+      },
 
       // ── LOGIN ──────────────────────────────────────────────────────────────
       login: async (credentials) => {
@@ -41,7 +70,6 @@ const useAuthStore = create(
           const response = await authService.login(credentials);
           const raw = response.data;
 
-          // Save the token
           if (raw.token) {
             localStorage.setItem('auth_token', raw.token);
           }
@@ -98,6 +126,14 @@ const useAuthStore = create(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
+      // Mark as hydrated as soon as persist finishes reading localStorage
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Don't set hydrated here — let initializeAuth() do it after
+          // validating the token. This prevents stale cached state from
+          // briefly showing a protected page before the token check.
+        }
+      },
     }
   )
 );

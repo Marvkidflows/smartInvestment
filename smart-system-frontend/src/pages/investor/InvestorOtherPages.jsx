@@ -6,101 +6,101 @@ import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
 import './InvestorPages.css';
 
-export function InvestorProfile() {
-  const { user } = useAuthStore();
-  const [form, setForm] = useState({ name:'', email:'', phone:'', address:'', city:'', country:'' });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+// export function InvestorProfile() {
+//   const { user } = useAuthStore();
+//   const [form, setForm] = useState({ name:'', email:'', phone:'', address:'', city:'', country:'' });
+//   const [loading, setLoading] = useState(true);
+//   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    investorService.getProfile()
-      .then(res => {
-        const p = res.data?.user || res.data?.profile || res.data || {};
-        setForm({ name: p.name||'', email: p.email||'', phone: p.phone||'', address: p.address||'', city: p.city||'', country: p.country||'' });
-      })
-      .catch(() => {
-        if (user) setForm({ name: user.name||'', email: user.email||'', phone:'', address:'', city:'', country:'' });
-      })
-      .finally(() => setLoading(false));
-  }, []);
+//   useEffect(() => {
+//     investorService.getProfile()
+//       .then(res => {
+//         const p = res.data?.user || res.data?.profile || res.data || {};
+//         setForm({ name: p.name||'', email: p.email||'', phone: p.phone||'', address: p.address||'', city: p.city||'', country: p.country||'' });
+//       })
+//       .catch(() => {
+//         if (user) setForm({ name: user.name||'', email: user.email||'', phone:'', address:'', city:'', country:'' });
+//       })
+//       .finally(() => setLoading(false));
+//   }, []);
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await investorService.updateProfile(form);
-      toast.success('Profile updated successfully!');
-    } catch {
-      toast.error('Failed to update profile');
-    } finally {
-      setSaving(false);
-    }
-  };
+//   const handleSave = async (e) => {
+//     e.preventDefault();
+//     setSaving(true);
+//     try {
+//       await investorService.updateProfile(form);
+//       toast.success('Profile updated successfully!');
+//     } catch {
+//       toast.error('Failed to update profile');
+//     } finally {
+//       setSaving(false);
+//     }
+//   };
 
-  if (loading) return <div className="inv-loading">Loading profile…</div>;
+//   if (loading) return <div className="inv-loading">Loading profile…</div>;
 
-  return (
-    <div className="inv-page">
-      <div className="inv-page__header">
-        <div><h1>My Profile</h1><p>Manage your personal information and preferences</p></div>
-      </div>
+//   return (
+//     <div className="inv-page">
+//       <div className="inv-page__header">
+//         <div><h1>My Profile</h1><p>Manage your personal information and preferences</p></div>
+//       </div>
 
-      <div className="profile-grid">
-        {/* AVATAR CARD */}
-        <div className="inv-card profile-avatar-card">
-          <div className="profile-big-avatar">
-            {(form.name || user?.name || 'U').charAt(0).toUpperCase()}
-          </div>
-          <h3>{form.name || user?.name || 'Investor'}</h3>
-          <p>{form.email || user?.email}</p>
-          <span className="badge badge-success">● Verified</span>
-          <div style={{ marginTop:'1.5rem', padding:'1rem', background:'var(--gray-50)', borderRadius:'var(--radius-md)', textAlign:'left' }}>
-            <div style={{ fontSize:'0.75rem', color:'var(--gray-400)', marginBottom:'0.35rem' }}>Account ID</div>
-            <div style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--navy)', fontWeight:600 }}>
-              #{user?.id || '000001'}
-            </div>
-          </div>
-        </div>
+//       <div className="profile-grid">
+//         {/* AVATAR CARD */}
+//         <div className="inv-card profile-avatar-card">
+//           <div className="profile-big-avatar">
+//             {(form.name || user?.name || 'U').charAt(0).toUpperCase()}
+//           </div>
+//           <h3>{form.name || user?.name || 'Investor'}</h3>
+//           <p>{form.email || user?.email}</p>
+//           <span className="badge badge-success">● Verified</span>
+//           <div style={{ marginTop:'1.5rem', padding:'1rem', background:'var(--gray-50)', borderRadius:'var(--radius-md)', textAlign:'left' }}>
+//             <div style={{ fontSize:'0.75rem', color:'var(--gray-400)', marginBottom:'0.35rem' }}>Account ID</div>
+//             <div style={{ fontFamily:'monospace', fontSize:'0.82rem', color:'var(--navy)', fontWeight:600 }}>
+//               #{user?.id || '000001'}
+//             </div>
+//           </div>
+//         </div>
 
-        {/* FORM */}
-        <div className="inv-card">
-          <h3 className="inv-card__title" style={{ marginBottom:'1.5rem' }}>Personal Information</h3>
-          <form onSubmit={handleSave}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <input className="form-control" value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Email Address</label>
-                <input type="email" className="form-control" value={form.email} onChange={e => setForm(f => ({...f, email:e.target.value}))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Phone Number</label>
-                <input className="form-control" value={form.phone} onChange={e => setForm(f => ({...f, phone:e.target.value}))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Country</label>
-                <input className="form-control" value={form.country} onChange={e => setForm(f => ({...f, country:e.target.value}))} />
-              </div>
-              <div className="form-group" style={{ gridColumn:'1/-1' }}>
-                <label className="form-label">Address</label>
-                <input className="form-control" value={form.address} onChange={e => setForm(f => ({...f, address:e.target.value}))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">City</label>
-                <input className="form-control" value={form.city} onChange={e => setForm(f => ({...f, city:e.target.value}))} />
-              </div>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : <><FiSave /> Save Changes</>}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
+//         {/* FORM */}
+//         <div className="inv-card">
+//           <h3 className="inv-card__title" style={{ marginBottom:'1.5rem' }}>Personal Information</h3>
+//           <form onSubmit={handleSave}>
+//             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
+//               <div className="form-group">
+//                 <label className="form-label">Full Name</label>
+//                 <input className="form-control" value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} />
+//               </div>
+//               <div className="form-group">
+//                 <label className="form-label">Email Address</label>
+//                 <input type="email" className="form-control" value={form.email} onChange={e => setForm(f => ({...f, email:e.target.value}))} />
+//               </div>
+//               <div className="form-group">
+//                 <label className="form-label">Phone Number</label>
+//                 <input className="form-control" value={form.phone} onChange={e => setForm(f => ({...f, phone:e.target.value}))} />
+//               </div>
+//               <div className="form-group">
+//                 <label className="form-label">Country</label>
+//                 <input className="form-control" value={form.country} onChange={e => setForm(f => ({...f, country:e.target.value}))} />
+//               </div>
+//               <div className="form-group" style={{ gridColumn:'1/-1' }}>
+//                 <label className="form-label">Address</label>
+//                 <input className="form-control" value={form.address} onChange={e => setForm(f => ({...f, address:e.target.value}))} />
+//               </div>
+//               <div className="form-group">
+//                 <label className="form-label">City</label>
+//                 <input className="form-control" value={form.city} onChange={e => setForm(f => ({...f, city:e.target.value}))} />
+//               </div>
+//             </div>
+//             <button type="submit" className="btn btn-primary" disabled={saving}>
+//               {saving ? <span className="spinner" /> : <><FiSave /> Save Changes</>}
+//             </button>
+//           </form>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 export function InvestorNotifications() {

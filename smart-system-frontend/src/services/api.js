@@ -41,6 +41,8 @@ export const authService = {
   logout:         ()     => api.post('/logout'),
   getUser:        ()     => api.get('/user'),
   registerStage1: (data) => api.post('/register/stage1', data),
+  verifyOtp:      (data) => api.post('/register/verify-otp', data),
+  resendOtp:      ()     => api.post('/register/resend-otp'),
   registerStage2: (data) => api.post('/register/stage2', data),
   registerStage3: (data) => api.post('/register/stage3', data),
   registerStage4: (data) => api.post('/register/stage4', data),
@@ -56,6 +58,12 @@ export const investorService = {
   getProfile:    ()     => api.get('/investor-investment/investor/profile'),
   updateProfile: (data) => api.put('/investor-investment/investor/profile', data),
 
+  
+  submitKyc: (formData) =>
+    api.post('/investor-investment/investor/profile/kyc', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+ 
   // Investments
   getInvestments:  ()       => api.get('/investor-investment/investor/investments'),
   getPlans:        ()       => api.get('/investor-investment/investor/investments/plans'),
@@ -64,12 +72,22 @@ export const investorService = {
 
   // Deposits
   getDeposits:  ()     => api.get('/investor-investment/investor/deposits'),
-  storeDeposit: (data) => api.post('/investor-investment/investor/deposits', data),
+ storeDeposit: (data) =>
+  api.post('/investor-investment/investor/deposits', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
   showDeposit:  (id)   => api.get(`/investor-investment/investor/deposits/${id}`),
 
   // Withdrawals
   getWithdrawals:  ()     => api.get('/investor-investment/investor/withdrawals'),
   storeWithdrawal: (data) => api.post('/investor-investment/investor/withdrawals', data),
+  getWithdrawalPinStatus: ()     => api.get('/investor-investment/investor/withdrawal-pin/status'),
+setWithdrawalPin:       (data) => api.post('/investor-investment/investor/withdrawal-pin', data),
+
+  // Sectors (active, for plan browsing/filtering)
+  getActiveSectors: () => api.get('/sectors/active'),
 
   // Messages — investor ↔ admin private thread
   getMessages: () =>
@@ -105,7 +123,18 @@ export const adminService = {
   updateUser:   (id, data)   => api.put(`/admin/users/${id}`, data),
   suspendUser:  (id)         => api.post(`/admin/users/${id}/suspend`),
   activateUser: (id)         => api.post(`/admin/users/${id}/activate`),
+  adjustBalance: (id, data) => api.post(`/admin/users/${id}/balance`, data),
 
+  // Email OTP verification — admin controls
+  getVerificationStatus: (id)       => api.get(`/admin/users/${id}/verification-status`),
+  resendUserOtp:          (id)       => api.post(`/admin/users/${id}/resend-otp`),
+  manualVerifyUser:       (id)       => api.post(`/admin/users/${id}/manual-verify`),
+
+    // Global Profit & Balance Management
+  adjustProfit:      (data) => api.post('/admin/global/profit-adjustments', data),
+  getProfitHistory:  ()     => api.get('/admin/global/profit-adjustments'),
+  bulkBalance:       (data) => api.post('/admin/global/balance-bulk', data),
+ 
   // Investments
   getInvestments:     ()   => api.get('/admin/investments'),
   showInvestment:     (id) => api.get(`/admin/investments/${id}`),
@@ -117,17 +146,42 @@ export const adminService = {
   updatePlan:  (id, data)   => api.put(`/admin/investment-plans/${id}`, data),
   deletePlan:  (id)         => api.delete(`/admin/investment-plans/${id}`),
 
+  // Sectors
+  getSectors:        ()           => api.get('/admin/sectors'),
+  createSector:      (data)       => api.post('/admin/sectors', data),
+  updateSector:      (id, data)   => api.put(`/admin/sectors/${id}`, data),
+  deleteSector:      (id)         => api.delete(`/admin/sectors/${id}`),
+  activateSector:    (id)         => api.post(`/admin/sectors/${id}/activate`),
+  deactivateSector:  (id)         => api.post(`/admin/sectors/${id}/deactivate`),
+
+  // Sector categories
+  createSectorCategory:     (sectorId, data) => api.post(`/admin/sectors/${sectorId}/categories`, data),
+  updateSectorCategory:     (id, data)       => api.put(`/admin/sector-categories/${id}`, data),
+  deleteSectorCategory:     (id)             => api.delete(`/admin/sector-categories/${id}`),
+  activateSectorCategory:   (id)             => api.post(`/admin/sector-categories/${id}/activate`),
+  deactivateSectorCategory: (id)             => api.post(`/admin/sector-categories/${id}/deactivate`),
+
   // Deposits
   getDeposits:    ()   => api.get('/admin/deposits'),
   showDeposit:    (id) => api.get(`/admin/deposits/${id}`),
   approveDeposit: (id) => api.post(`/admin/deposits/${id}/approve`),
   rejectDeposit:  (id) => api.post(`/admin/deposits/${id}/reject`),
+  holdDeposit:      (id)         => api.post(`/admin/deposits/${id}/hold`),
+addDepositNote:   (id, data)   => api.post(`/admin/deposits/${id}/notes`, data),
 
   // Withdrawals
   getWithdrawals:    ()   => api.get('/admin/withdrawals'),
+  showWithdrawal:    (id) => api.get(`/admin/withdrawals/${id}`),
   approveWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/approve`),
   rejectWithdrawal:  (id) => api.post(`/admin/withdrawals/${id}/reject`),
+holdWithdrawal:      (id)       => api.post(`/admin/withdrawals/${id}/hold`),
+addWithdrawalNote:   (id, data) => api.post(`/admin/withdrawals/${id}/notes`, data),
 
+getKycSubmissions: ()       => api.get('/admin/kyc'),
+  showKycSubmission: (id)     => api.get(`/admin/kyc/${id}`),
+  approveKyc:        (id)     => api.post(`/admin/kyc/${id}/approve`),
+  rejectKyc:         (id, data) => api.post(`/admin/kyc/${id}/reject`, data),
+ 
   // Messages
   getMessages: () =>
     api.get('/admin/messages'),

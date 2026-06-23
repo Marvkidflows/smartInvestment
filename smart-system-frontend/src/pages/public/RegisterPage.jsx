@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiUser, FiMail, FiLock, FiPhone, FiMapPin, FiCheck, FiShield, FiAlertCircle } from 'react-icons/fi';
 import { authService } from '../../services/api';
@@ -7,11 +7,14 @@ import toast from 'react-hot-toast';
 import './AuthPages.css';
 
 const STAGES = [
-  { n:1, label:'Account'        },
-  { n:2, label:'Personal Info'  },
-  { n:3, label:'Investor Profile' },
-  { n:4, label:'Security'       },
+  { n:1, label:'Account'          },
+  { n:2, label:'Verify Email'     },
+  { n:3, label:'Personal Info'    },
+  { n:4, label:'Investor Profile' },
+  { n:5, label:'Security'         },
 ];
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 function extractErrors(err) {
   const data = err.response?.data;
@@ -26,12 +29,15 @@ function extractErrors(err) {
 }
 
 export default function RegisterPage() {
-  const [stage, setStage]         = useState(1);
-  const [loading, setLoading]     = useState(false);
+  const [stage, setStage]           = useState(1);
+  const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [otpCode, setOtpCode]       = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [loading, setLoading]       = useState(false);
   const [stageError, setStageError] = useState('');
-  const [searchParams]            = useSearchParams();
-  const { setUser }               = useAuthStore();
-  const navigate                  = useNavigate();
+  const [searchParams]              = useSearchParams();
+  const { setUser }                 = useAuthStore();
+  const navigate                    = useNavigate();
 
   const [form, setForm] = useState({
     // Stage 1 — Account
@@ -39,16 +45,26 @@ export default function RegisterPage() {
     password: '', password_confirmation: '',
     referral_code: searchParams.get('ref') || '',
 
-    // Stage 2 — Personal / KYC
+    // Stage 3 — Personal / KYC
     date_of_birth: '', residential_address: '', city: '', state: '', postal_code: '',
 
-    // Stage 3 — Investor Profile
+    // Stage 4 — Investor Profile
     employment_status: '', annual_income_range: '', source_of_funds: '',
     investment_experience: '', risk_tolerance: '', investment_objectives: '',
 
-    // Stage 4 — Security
+    // Stage 5 — Security
     withdrawal_pin: '', withdrawal_pin_confirmation: '',
   });
+
+  // Visual step shown in the sidebar/header (maps internal `stage` + awaitingOtp to the 5-step display)
+  const visualStep = awaitingOtp ? 2 : stage === 1 ? 1 : stage + 1;
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   const update = (key, val) => {
     setStageError('');
@@ -72,12 +88,12 @@ export default function RegisterPage() {
           referral_code:         form.referral_code || undefined,
         });
 
-        // Save token for stages 2-4
-        if (res.data?.token) {
-          localStorage.setItem('auth_token', res.data.token);
-        }
+        // Save token for OTP + stages 2-4
+     if (res.data?.token) {
+  localStorage.setItem('auth_token', res.data.token);
+}
 
-        setStage(2);
+setStage(2);
 
       } else if (stage === 2) {
         await authService.registerStage2({
@@ -126,8 +142,47 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  const submitOtp = async () => {
+    setLoading(true);
+    setStageError('');
+
+    try {
+      await authService.verifyOtp({ otp: otpCode });
+      toast.success('Email verified!');
+      setAwaitingOtp(false);
+      setOtpCode('');
+      setStage(2);
+    } catch (err) {
+      setStageError(extractErrors(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setStageError('');
+    try {
+      await authService.resendOtp();
+      toast.success('A new code has been sent.');
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setStageError(extractErrors(err));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (awaitingOtp) {
+      if (!/^\d{6}$/.test(otpCode)) {
+        setStageError('Enter the 6-digit code from your email.');
+        return;
+      }
+      submitOtp();
+      return;
+    }
 
     // Client-side validation before hitting API
     if (stage === 1) {
@@ -154,6 +209,7 @@ export default function RegisterPage() {
 
     submitStage();
   };
+
   return (
     <div className="auth-page">
       {/* ── LEFT ── */}
@@ -164,13 +220,13 @@ export default function RegisterPage() {
             Smart<b>System</b>
           </Link>
           <h2>Start building wealth today.</h2>
-          <p>Complete registration in 4 simple steps and join thousands of successful investors.</p>
+          <p>Complete registration in 5 simple steps and join thousands of successful investors.</p>
 
           <div className="reg-stages">
             {STAGES.map(s => (
-              <div key={s.n} className={`reg-stage ${s.n < stage ? 'done' : s.n === stage ? 'active' : ''}`}>
+              <div key={s.n} className={`reg-stage ${s.n < visualStep ? 'done' : s.n === visualStep ? 'active' : ''}`}>
                 <div className="reg-stage__num">
-                  {s.n < stage ? <FiCheck size={13} /> : s.n}
+                  {s.n < visualStep ? <FiCheck size={13} /> : s.n}
                 </div>
                 <span>{s.label}</span>
               </div>
@@ -185,12 +241,12 @@ export default function RegisterPage() {
           <div className="auth-form-header">
             <FiShield size={32} className="auth-shield" />
             <h1>Create Account</h1>
-            <p>Step {stage} of 4 — {STAGES[stage - 1].label}</p>
+            <p>Step {visualStep} of 5 — {STAGES[visualStep - 1].label}</p>
           </div>
 
           {/* PROGRESS BAR */}
           <div className="stage-progress">
-            <div className="stage-progress__bar" style={{ width:`${(stage / 4) * 100}%` }} />
+            <div className="stage-progress__bar" style={{ width:`${(visualStep / 5) * 100}%` }} />
           </div>
 
           {/* ERROR BANNER */}
@@ -203,8 +259,46 @@ export default function RegisterPage() {
 
           <form className="auth-form" onSubmit={handleSubmit}>
 
+            {/* ── VERIFY EMAIL (OTP) ── */}
+            {awaitingOtp && (
+              <>
+                <div className="reg-success-banner">
+                  <div>📧</div>
+                  <div>
+                    <strong>Check your email</strong>
+                    <p>We sent a 6-digit code to {form.email}. Enter it below to continue.</p>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Verification Code</label>
+                  <input
+                    className="form-control auth-input"
+                    style={{ textAlign:'center', fontSize:'1.4rem', letterSpacing:'0.5rem' }}
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    autoFocus
+                    value={otpCode}
+                    onChange={e => { setStageError(''); setOtpCode(e.target.value.replace(/\D/g, '')); }}
+                  />
+                </div>
+
+                <div style={{ textAlign:'center', fontSize:'0.85rem', color:'var(--gray-400)' }}>
+                  Didn't get the code?{' '}
+                  {resendCooldown > 0 ? (
+                    <span>Resend in {resendCooldown}s</span>
+                  ) : (
+                    <button type="button" className="link-btn" onClick={resendOtp} style={{ background:'none', border:'none', color:'var(--info)', cursor:'pointer', padding:0 }}>
+                      Resend code
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
             {/* ── STAGE 1 — Account ── */}
-            {stage === 1 && (
+            {!awaitingOtp && stage === 1 && (
               <>
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
@@ -303,7 +397,7 @@ export default function RegisterPage() {
             )}
 
             {/* ── STAGE 2 — Personal Info / KYC ── */}
-            {stage === 2 && (
+            {!awaitingOtp && stage === 2 && (
               <>
                 <div className="form-group">
                   <label className="form-label">Date of Birth</label>
@@ -352,7 +446,7 @@ export default function RegisterPage() {
             )}
 
             {/* ── STAGE 3 — Investor Profile ── */}
-            {stage === 3 && (
+            {!awaitingOtp && stage === 3 && (
               <>
                 <div className="form-group">
                   <label className="form-label">Employment Status</label>
@@ -436,7 +530,7 @@ export default function RegisterPage() {
             )}
 
             {/* ── STAGE 4 — Security ── */}
-            {stage === 4 && (
+            {!awaitingOtp && stage === 4 && (
               <>
                 <div className="reg-success-banner">
                   <div>🎉</div>
@@ -482,7 +576,7 @@ export default function RegisterPage() {
 
             {/* NAVIGATION BUTTONS */}
             <div style={{ display:'flex', gap:'0.75rem', marginTop:'0.5rem' }}>
-              {stage > 1 && (
+              {!awaitingOtp && stage > 1 && (
                 <button type="button" className="btn btn-ghost"
                   style={{ flex:1 }}
                   disabled={loading}
@@ -493,12 +587,12 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ flex: stage > 1 ? 1 : '1 0 100%', padding:'0.9rem' }}
+                style={{ flex: (!awaitingOtp && stage > 1) ? 1 : '1 0 100%', padding:'0.9rem' }}
                 disabled={loading}
               >
                 {loading
-                  ? <><span className="spinner" style={{ borderTopColor:'white' }} /> {stage === 4 ? 'Creating account…' : 'Saving…'}</>
-                  : stage === 4 ? 'Create Account' : 'Continue'
+                  ? <><span className="spinner" style={{ borderTopColor:'white' }} /> {awaitingOtp ? 'Verifying…' : stage === 4 ? 'Creating account…' : 'Saving…'}</>
+                  : awaitingOtp ? 'Verify Email' : stage === 4 ? 'Create Account' : 'Continue'
                 }
               </button>
             </div>
