@@ -143,46 +143,46 @@ setStage(2);
     }
   };
 
-  const submitOtp = async () => {
-    setLoading(true);
-    setStageError('');
+   const submitOtp = async () => {
+  // //   setLoading(true);
+  // //   setStageError('');
 
-    try {
-      await authService.verifyOtp({ otp: otpCode });
-      toast.success('Email verified!');
-      setAwaitingOtp(false);
-      setOtpCode('');
-      setStage(2);
-    } catch (err) {
-      setStageError(extractErrors(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  // //   try {
+  // //     await authService.verifyOtp({ otp: otpCode });
+  // //     toast.success('Email verified!');
+  // //     setAwaitingOtp(false);
+  // //     setOtpCode('');
+  // //     setStage(2);
+  // //   } catch (err) {
+  // //     setStageError(extractErrors(err));
+  // //   } finally {
+  // //     setLoading(false);
+  // //   }
+  // // };
 
-  const resendOtp = async () => {
-    if (resendCooldown > 0) return;
-    setStageError('');
-    try {
-      await authService.resendOtp();
-      toast.success('A new code has been sent.');
-      setResendCooldown(RESEND_COOLDOWN_SECONDS);
-    } catch (err) {
-      setStageError(extractErrors(err));
-    }
-  };
+  // // const resendOtp = async () => {
+  // //   if (resendCooldown > 0) return;
+  // //   setStageError('');
+  // //   try {
+  // //     await authService.resendOtp();
+  // //     toast.success('A new code has been sent.');
+  // //     setResendCooldown(RESEND_COOLDOWN_SECONDS);
+  // //   } catch (err) {
+  // //     setStageError(extractErrors(err));
+  // //   }
+  // // };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // // const handleSubmit = (e) => {
+  // //   e.preventDefault();
 
-    if (awaitingOtp) {
-      if (!/^\d{6}$/.test(otpCode)) {
-        setStageError('Enter the 6-digit code from your email.');
-        return;
-      }
-      submitOtp();
-      return;
-    }
+  // //   if (awaitingOtp) {
+  // //     if (!/^\d{6}$/.test(otpCode)) {
+  // //       setStageError('Enter the 6-digit code from your email.');
+  // //       return;
+  // //     }
+  // //     submitOtp();
+  // //     return;
+  //  }
 
     // Client-side validation before hitting API
     if (stage === 1) {
