@@ -16,6 +16,8 @@ import FaqPage        from './pages/public/FaqPage';
 import ContactPage    from './pages/public/ContactPage';
 import LoginPage      from './pages/public/LoginPage';
 import RegisterPage   from './pages/public/RegisterPage';
+import ForgotPasswordPage from './pages/public/ForgotPassword';
+import ResetPasswordPage from './pages/public/ResetPassword';
 
 // Investor Pages
 import InvestorDashboard    from './pages/investor/InvestorDashboard';
@@ -127,6 +129,8 @@ export default function App() {
       {/* ── AUTH ── */}
       <Route path="/login"    element={<GuestRoute><LoginPage /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+      <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+     <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* ── INVESTOR ── */}
       <Route path="/investor" element={<InvestorRoute><InvestorLayout /></InvestorRoute>}>

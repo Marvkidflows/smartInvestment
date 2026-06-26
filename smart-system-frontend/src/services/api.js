@@ -46,6 +46,10 @@ export const authService = {
   registerStage2: (data) => api.post('/register/stage2', data),
   registerStage3: (data) => api.post('/register/stage3', data),
   registerStage4: (data) => api.post('/register/stage4', data),
+
+  // Password reset
+  forgotPassword: (data) => api.post('/forgot-password', data),
+  resetPassword:  (data) => api.post('/reset-password', data),
 };
 
 // ─── INVESTOR SERVICE ─────────────────────────────────────────────────────────

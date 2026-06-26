@@ -21,6 +21,7 @@ function extractErrors(err) {
   if (!data) return `Network error — is the server running?`;
   if (data.message) return data.message;
   if (data.errors) {
+    // Return the first validation error message
     const first = Object.values(data.errors)[0];
     return Array.isArray(first) ? first[0] : String(first);
   }
@@ -28,29 +29,37 @@ function extractErrors(err) {
 }
 
 export default function RegisterPage() {
-  const [stage, setStage]               = useState(1);
-  const [awaitingOtp, setAwaitingOtp]   = useState(false);
-  const [otpCode, setOtpCode]           = useState('');
+  const [stage, setStage]           = useState(1);
+  const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [otpCode, setOtpCode]       = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [loading, setLoading]           = useState(false);
-  const [stageError, setStageError]     = useState('');
-  const [searchParams]                  = useSearchParams();
-  const { setUser }                     = useAuthStore();
-  const navigate                        = useNavigate();
+  const [loading, setLoading]       = useState(false);
+  const [stageError, setStageError] = useState('');
+  const [searchParams]              = useSearchParams();
+  const { setUser }                 = useAuthStore();
+  const navigate                    = useNavigate();
 
   const [form, setForm] = useState({
+    // Stage 1 — Account
     full_name: '', email: '', country_code: '', phone: '', country: '',
     password: '', password_confirmation: '',
     referral_code: searchParams.get('ref') || '',
+
+    // Stage 3 — Personal / KYC
     date_of_birth: '', residential_address: '', city: '', state: '', postal_code: '',
+
+    // Stage 4 — Investor Profile
     employment_status: '', annual_income_range: '', source_of_funds: '',
     investment_experience: '', risk_tolerance: '', investment_objectives: '',
+
+    // Stage 5 — Security
     withdrawal_pin: '', withdrawal_pin_confirmation: '',
   });
 
-  // Visual step — OTP step (2) is skipped for now, so stage maps 1→1, 2→3, 3→4, 4→5
+  // Visual step shown in the sidebar/header (maps internal `stage` + awaitingOtp to the 5-step display)
   const visualStep = awaitingOtp ? 2 : stage === 1 ? 1 : stage + 1;
 
+  // Resend cooldown countdown
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
@@ -65,6 +74,7 @@ export default function RegisterPage() {
   const submitStage = async () => {
     setLoading(true);
     setStageError('');
+
     try {
       if (stage === 1) {
         const res = await authService.registerStage1({
@@ -77,18 +87,23 @@ export default function RegisterPage() {
           password_confirmation: form.password_confirmation,
           referral_code:         form.referral_code || undefined,
         });
+
+        // Save token for OTP + stages 2-4
         if (res.data?.token) {
           localStorage.setItem('auth_token', res.data.token);
         }
-        setStage(2);
+
+        // Move to email verification instead of stage 2
+        setAwaitingOtp(true);
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
 
       } else if (stage === 2) {
         await authService.registerStage2({
-          date_of_birth:       form.date_of_birth,
-          residential_address: form.residential_address,
-          city:                form.city,
-          state:               form.state || undefined,
-          postal_code:         form.postal_code || undefined,
+          date_of_birth:        form.date_of_birth,
+          residential_address:  form.residential_address,
+          city:                 form.city,
+          state:                form.state || undefined,
+          postal_code:          form.postal_code || undefined,
         });
         setStage(3);
 
@@ -106,17 +121,40 @@ export default function RegisterPage() {
       } else if (stage === 4) {
         const payload = {};
         if (form.withdrawal_pin) {
-          payload.withdrawal_pin              = form.withdrawal_pin;
+          payload.withdrawal_pin = form.withdrawal_pin;
           payload.withdrawal_pin_confirmation = form.withdrawal_pin_confirmation;
         }
+
         const res = await authService.registerStage4(payload);
+
+        // After stage 4, user should be logged in
         const user = res.data?.user || res.data;
         if (user?.id) {
           setUser({ ...user, role: user.role || 'investor' });
         }
+
         toast.success('Account created! Welcome to Smart System.');
         navigate('/investor/dashboard', { replace: true });
       }
+
+    } catch (err) {
+      const msg = extractErrors(err);
+      setStageError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitOtp = async () => {
+    setLoading(true);
+    setStageError('');
+
+    try {
+      await authService.verifyOtp({ otp: otpCode });
+      toast.success('Email verified!');
+      setAwaitingOtp(false);
+      setOtpCode('');
+      setStage(2);
     } catch (err) {
       setStageError(extractErrors(err));
     } finally {
@@ -124,51 +162,31 @@ export default function RegisterPage() {
     }
   };
 
-  // ── OTP handlers — disabled until email service is configured ──────────────
-  const submitOtp = async () => {
-    // TODO: uncomment when email OTP is ready
-    // setLoading(true);
-    // setStageError('');
-    // try {
-    //   await authService.verifyOtp({ otp: otpCode });
-    //   toast.success('Email verified!');
-    //   setAwaitingOtp(false);
-    //   setOtpCode('');
-    //   setStage(2);
-    // } catch (err) {
-    //   setStageError(extractErrors(err));
-    // } finally {
-    //   setLoading(false);
-    // }
-  };
-
   const resendOtp = async () => {
-    // TODO: uncomment when email OTP is ready
-    // if (resendCooldown > 0) return;
-    // setStageError('');
-    // try {
-    //   await authService.resendOtp();
-    //   toast.success('A new code has been sent.');
-    //   setResendCooldown(RESEND_COOLDOWN_SECONDS);
-    // } catch (err) {
-    //   setStageError(extractErrors(err));
-    // }
+    if (resendCooldown > 0) return;
+    setStageError('');
+    try {
+      await authService.resendOtp();
+      toast.success('A new code has been sent.');
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setStageError(extractErrors(err));
+    }
   };
-  // ──────────────────────────────────────────────────────────────────────────
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // OTP step disabled for now — re-enable after email service is configured
-    // if (awaitingOtp) {
-    //   if (!/^\d{6}$/.test(otpCode)) {
-    //     setStageError('Enter the 6-digit code from your email.');
-    //     return;
-    //   }
-    //   submitOtp();
-    //   return;
-    // }
+    if (awaitingOtp) {
+      if (!/^\d{6}$/.test(otpCode)) {
+        setStageError('Enter the 6-digit code from your email.');
+        return;
+      }
+      submitOtp();
+      return;
+    }
 
+    // Client-side validation before hitting API
     if (stage === 1) {
       if (form.password.length < 8) {
         setStageError('Password must be at least 8 characters.');
@@ -205,6 +223,7 @@ export default function RegisterPage() {
           </Link>
           <h2>Start building wealth today.</h2>
           <p>Complete registration in 5 simple steps and join thousands of successful investors.</p>
+
           <div className="reg-stages">
             {STAGES.map(s => (
               <div key={s.n} className={`reg-stage ${s.n < visualStep ? 'done' : s.n === visualStep ? 'active' : ''}`}>
@@ -227,10 +246,12 @@ export default function RegisterPage() {
             <p>Step {visualStep} of 5 — {STAGES[visualStep - 1].label}</p>
           </div>
 
+          {/* PROGRESS BAR */}
           <div className="stage-progress">
             <div className="stage-progress__bar" style={{ width:`${(visualStep / 5) * 100}%` }} />
           </div>
 
+          {/* ERROR BANNER */}
           {stageError && (
             <div className="auth-error" style={{ display:'flex', alignItems:'flex-start', gap:'0.6rem', marginBottom:'1.25rem' }}>
               <FiAlertCircle size={16} style={{ flexShrink:0, marginTop:2 }} />
@@ -240,7 +261,7 @@ export default function RegisterPage() {
 
           <form className="auth-form" onSubmit={handleSubmit}>
 
-            {/* ── OTP screen — hidden until awaitingOtp is true ── */}
+            {/* ── VERIFY EMAIL (OTP) ── */}
             {awaitingOtp && (
               <>
                 <div className="reg-success-banner">
@@ -250,23 +271,27 @@ export default function RegisterPage() {
                     <p>We sent a 6-digit code to {form.email}. Enter it below to continue.</p>
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Verification Code</label>
                   <input
                     className="form-control auth-input"
                     style={{ textAlign:'center', fontSize:'1.4rem', letterSpacing:'0.5rem' }}
-                    inputMode="numeric" maxLength={6} placeholder="000000" autoFocus
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    autoFocus
                     value={otpCode}
                     onChange={e => { setStageError(''); setOtpCode(e.target.value.replace(/\D/g, '')); }}
                   />
                 </div>
+
                 <div style={{ textAlign:'center', fontSize:'0.85rem', color:'var(--gray-400)' }}>
                   Didn't get the code?{' '}
                   {resendCooldown > 0 ? (
                     <span>Resend in {resendCooldown}s</span>
                   ) : (
-                    <button type="button" onClick={resendOtp}
-                      style={{ background:'none', border:'none', color:'var(--info)', cursor:'pointer', padding:0 }}>
+                    <button type="button" className="link-btn" onClick={resendOtp} style={{ background:'none', border:'none', color:'var(--info)', cursor:'pointer', padding:0 }}>
                       Resend code
                     </button>
                   )}
@@ -285,6 +310,7 @@ export default function RegisterPage() {
                       value={form.full_name} onChange={e => update('full_name', e.target.value)} />
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Email Address</label>
                   <div className="auth-input-wrap">
@@ -294,6 +320,7 @@ export default function RegisterPage() {
                       value={form.email} onChange={e => update('email', e.target.value)} />
                   </div>
                 </div>
+
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:'1rem' }}>
                   <div className="form-group">
                     <label className="form-label">Country Code</label>
@@ -309,6 +336,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Country</label>
                   <div className="auth-input-wrap">
@@ -317,14 +345,17 @@ export default function RegisterPage() {
                       value={form.country} onChange={e => update('country', e.target.value)} />
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Password</label>
                   <div className="auth-input-wrap">
                     <FiLock className="auth-input-icon" size={15} />
                     <input type="password" className="form-control auth-input"
-                      placeholder="Min. 8 characters" required minLength={8} autoComplete="new-password"
+                      placeholder="Min. 8 characters" required minLength={8}
+                      autoComplete="new-password"
                       value={form.password} onChange={e => update('password', e.target.value)} />
                   </div>
+                  {/* Password strength indicator */}
                   {form.password.length > 0 && (
                     <div style={{ marginTop:'0.4rem' }}>
                       <div style={{ height:4, background:'var(--gray-200)', borderRadius:999, overflow:'hidden' }}>
@@ -340,6 +371,7 @@ export default function RegisterPage() {
                     </div>
                   )}
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Confirm Password</label>
                   <div className="auth-input-wrap">
@@ -353,12 +385,15 @@ export default function RegisterPage() {
                     <div className="form-error">Passwords do not match</div>
                   )}
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">
-                    Referral Code <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
+                    Referral Code{' '}
+                    <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
                   </label>
                   <input className="form-control" placeholder="e.g. REF123456"
-                    value={form.referral_code} onChange={e => update('referral_code', e.target.value)} />
+                    value={form.referral_code}
+                    onChange={e => update('referral_code', e.target.value)} />
                 </div>
               </>
             )}
@@ -375,6 +410,7 @@ export default function RegisterPage() {
                     You must be at least 18 years old.
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Residential Address</label>
                   <div className="auth-input-wrap">
@@ -383,6 +419,7 @@ export default function RegisterPage() {
                       value={form.residential_address} onChange={e => update('residential_address', e.target.value)} />
                   </div>
                 </div>
+
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
                   <div className="form-group">
                     <label className="form-label">City</label>
@@ -391,15 +428,18 @@ export default function RegisterPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">
-                      State / Province <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
+                      State / Province{' '}
+                      <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
                     </label>
                     <input className="form-control" placeholder="NY"
                       value={form.state} onChange={e => update('state', e.target.value)} />
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">
-                    Postal Code <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
+                    Postal Code{' '}
+                    <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
                   </label>
                   <input className="form-control" placeholder="10001"
                     value={form.postal_code} onChange={e => update('postal_code', e.target.value)} />
@@ -412,7 +452,8 @@ export default function RegisterPage() {
               <>
                 <div className="form-group">
                   <label className="form-label">Employment Status</label>
-                  <select className="form-control" required value={form.employment_status}
+                  <select className="form-control" required
+                    value={form.employment_status}
                     onChange={e => update('employment_status', e.target.value)}>
                     <option value="">Select…</option>
                     <option value="employed">Employed</option>
@@ -422,9 +463,11 @@ export default function RegisterPage() {
                     <option value="student">Student</option>
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Annual Income Range</label>
-                  <select className="form-control" required value={form.annual_income_range}
+                  <select className="form-control" required
+                    value={form.annual_income_range}
                     onChange={e => update('annual_income_range', e.target.value)}>
                     <option value="">Select…</option>
                     <option value="under_25000">Under $25,000</option>
@@ -434,9 +477,11 @@ export default function RegisterPage() {
                     <option value="over_250000">Over $250,000</option>
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Source of Funds</label>
-                  <select className="form-control" required value={form.source_of_funds}
+                  <select className="form-control" required
+                    value={form.source_of_funds}
                     onChange={e => update('source_of_funds', e.target.value)}>
                     <option value="">Select…</option>
                     <option value="salary">Salary / Employment Income</option>
@@ -447,9 +492,11 @@ export default function RegisterPage() {
                     <option value="other">Other</option>
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Investment Experience</label>
-                  <select className="form-control" required value={form.investment_experience}
+                  <select className="form-control" required
+                    value={form.investment_experience}
                     onChange={e => update('investment_experience', e.target.value)}>
                     <option value="">Select…</option>
                     <option value="none">None</option>
@@ -458,9 +505,11 @@ export default function RegisterPage() {
                     <option value="advanced">Advanced / Professional</option>
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Risk Tolerance</label>
-                  <select className="form-control" required value={form.risk_tolerance}
+                  <select className="form-control" required
+                    value={form.risk_tolerance}
                     onChange={e => update('risk_tolerance', e.target.value)}>
                     <option value="">Select…</option>
                     <option value="conservative">Conservative</option>
@@ -468,9 +517,11 @@ export default function RegisterPage() {
                     <option value="aggressive">Aggressive</option>
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">
-                    Investment Objectives <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
+                    Investment Objectives{' '}
+                    <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional)</span>
                   </label>
                   <textarea className="form-control" rows={3}
                     placeholder="e.g. Long-term growth, retirement planning…"
@@ -490,25 +541,30 @@ export default function RegisterPage() {
                     <p>Optionally set a 4-digit withdrawal PIN to secure future withdrawals.</p>
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">
-                    Withdrawal PIN <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional, 4 digits)</span>
+                    Withdrawal PIN{' '}
+                    <span style={{ color:'var(--gray-400)', fontWeight:400 }}>(optional, 4 digits)</span>
                   </label>
                   <div className="auth-input-wrap">
                     <FiLock className="auth-input-icon" size={15} />
                     <input type="password" inputMode="numeric" maxLength={4}
-                      className="form-control auth-input" placeholder="••••" autoComplete="off"
+                      className="form-control auth-input" placeholder="••••"
+                      autoComplete="off"
                       value={form.withdrawal_pin}
                       onChange={e => update('withdrawal_pin', e.target.value.replace(/\D/g, ''))} />
                   </div>
                 </div>
+
                 {form.withdrawal_pin.length > 0 && (
                   <div className="form-group">
                     <label className="form-label">Confirm Withdrawal PIN</label>
                     <div className="auth-input-wrap">
                       <FiLock className="auth-input-icon" size={15} />
                       <input type="password" inputMode="numeric" maxLength={4}
-                        className="form-control auth-input" placeholder="••••" autoComplete="off"
+                        className="form-control auth-input" placeholder="••••"
+                        autoComplete="off"
                         value={form.withdrawal_pin_confirmation}
                         onChange={e => update('withdrawal_pin_confirmation', e.target.value.replace(/\D/g, ''))} />
                     </div>
@@ -523,15 +579,19 @@ export default function RegisterPage() {
             {/* NAVIGATION BUTTONS */}
             <div style={{ display:'flex', gap:'0.75rem', marginTop:'0.5rem' }}>
               {!awaitingOtp && stage > 1 && (
-                <button type="button" className="btn btn-ghost" style={{ flex:1 }}
+                <button type="button" className="btn btn-ghost"
+                  style={{ flex:1 }}
                   disabled={loading}
                   onClick={() => { setStageError(''); setStage(s => s - 1); }}>
                   Back
                 </button>
               )}
-              <button type="submit" className="btn btn-primary"
+              <button
+                type="submit"
+                className="btn btn-primary"
                 style={{ flex: (!awaitingOtp && stage > 1) ? 1 : '1 0 100%', padding:'0.9rem' }}
-                disabled={loading}>
+                disabled={loading}
+              >
                 {loading
                   ? <><span className="spinner" style={{ borderTopColor:'white' }} /> {awaitingOtp ? 'Verifying…' : stage === 4 ? 'Creating account…' : 'Saving…'}</>
                   : awaitingOtp ? 'Verify Email' : stage === 4 ? 'Create Account' : 'Continue'

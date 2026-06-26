@@ -109,7 +109,7 @@ export default function LoginPage() {
                     setForm(f => ({ ...f, password: e.target.value }));
                   }}
                 />
-                <button
+               <button
                   type="button"
                   className="auth-pw-toggle"
                   onClick={() => setShowPw(v => !v)}
@@ -117,6 +117,11 @@ export default function LoginPage() {
                 >
                   {showPw ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                 </button>
+              </div>
+              <div style={{ textAlign: 'right', marginTop: '0.4rem' }}>
+                <Link to="/forgot-password" style={{ fontSize: '0.85rem' }}>
+                  Forgot password?
+                </Link>
               </div>
             </div>
 
