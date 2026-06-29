@@ -35,6 +35,67 @@ function SkeletonCard() {
   );
 }
 
+// ── COUNTDOWN CARD — shows live days-remaining + progress for each investment ──
+function CountdownCard({ investment }) {
+  const { days_remaining, progress, countdown_status, plan_name, amount, expected_profit, end_date, start_date } = investment;
+
+  const statusConfig = {
+    active:        { label: '🟢 Active',        color: '#16a34a' },
+    maturing_soon: { label: '🟡 Maturing Soon',  color: '#f59e0b' },
+    matured:       { label: '🔵 Matured',        color: '#3b82f6' },
+    paid:          { label: '✅ Paid',           color: '#16a34a' },
+  };
+  const status = statusConfig[countdown_status] || statusConfig.active;
+  const progressColor = progress < 50 ? '#16a34a' : progress < 85 ? '#f59e0b' : '#dc2626';
+
+  return (
+    <div className="inv-card" style={{ padding: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--navy)' }}>{plan_name}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>
+            Started {start_date ? new Date(start_date).toLocaleDateString() : '—'}
+          </div>
+        </div>
+        <span className="badge" style={{ background: status.color + '20', color: status.color, fontWeight: 600, fontSize: '0.78rem', padding: '0.3rem 0.7rem', borderRadius: 999 }}>
+          {status.label}
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        <div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', textTransform: 'uppercase' }}>Invested</div>
+          <div style={{ fontWeight: 700 }}>${parseFloat(amount || 0).toLocaleString()}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', textTransform: 'uppercase' }}>Expected Profit</div>
+          <div style={{ fontWeight: 700, color: 'var(--success)' }}>+${parseFloat(expected_profit || 0).toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'center', margin: '1.25rem 0' }}>
+        {countdown_status === 'matured' || countdown_status === 'paid' ? (
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: status.color }}>
+            {countdown_status === 'paid' ? 'Payout Complete' : 'Investment Matured'}
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--navy)' }}>{days_remaining}</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--gray-400)' }}>Days Remaining</div>
+          </>
+        )}
+      </div>
+
+      <div style={{ height: 8, borderRadius: 8, background: 'var(--gray-100)', overflow: 'hidden', marginBottom: '0.4rem' }}>
+        <div style={{ height: '100%', width: `${progress}%`, background: progressColor, transition: 'width 0.4s ease' }} />
+      </div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', textAlign: 'right' }}>
+        {progress}% Completed · Ends {end_date ? new Date(end_date).toLocaleDateString() : '—'}
+      </div>
+    </div>
+  );
+}
+
 const SAMPLE_CHART = [
   { month:'Jan', profit:320 }, { month:'Feb', profit:480 }, { month:'Mar', profit:390 },
   { month:'Apr', profit:620 }, { month:'May', profit:540 }, { month:'Jun', profit:780 },
@@ -190,7 +251,7 @@ export default function InvestorDashboard() {
         </div>
       </div>
 
-      {/* ACTIVE INVESTMENTS */}
+      {/* ACTIVE INVESTMENTS — now using live CountdownCard */}
       <div className="inv-section">
         <div className="inv-section__header">
           <h3>Active Investments</h3>
@@ -205,27 +266,13 @@ export default function InvestorDashboard() {
         ) : (
           <div className="inv-investments-grid">
             {investments.slice(0, 4).map(inv => (
-              <div key={inv.id} className="inv-invest-card">
-                <div className="inv-invest-card__top">
-                  <div>
-                    <h4>{inv.plan?.name || inv.plan_name || 'Investment Plan'}</h4>
-                    <span className="badge badge-success">Active</span>
-                  </div>
-                  <div className="inv-invest-card__profit">+{inv.profit_percent || inv.roi || 0}%</div>
-                </div>
-                <div className="inv-invest-card__amount">${parseFloat(inv.amount || 0).toLocaleString()}</div>
-                <div className="inv-invest-progress">
-                  <div className="inv-invest-progress__bar" style={{ width: `${Math.min((inv.days_passed / inv.total_days) * 100, 100) || 40}%` }} />
-                </div>
-                <div className="inv-invest-card__meta">
-                  <span>Started {inv.start_date || '—'}</span>
-                  <span>{inv.days_remaining || '—'} days left</span>
-                </div>
-              </div>
+              <CountdownCard key={inv.id} investment={inv} />
             ))}
           </div>
         )}
       </div>
+
+      
 
       {/* RECENT DEPOSITS */}
       <div className="inv-section">
